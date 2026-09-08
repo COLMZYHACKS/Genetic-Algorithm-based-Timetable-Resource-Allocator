@@ -13,37 +13,211 @@
   },
   {
     "id": 3,
-    "course": "MATH201",
+    "course": "CS103",
     "duration": 120,
     "required_room_type": "exam_hall"
   },
   {
     "id": 4,
-    "course": "MATH202",
+    "course": "CS104",
     "duration": 120,
     "required_room_type": "exam_hall"
   },
   {
     "id": 5,
-    "course": "ENG301",
+    "course": "MATH201",
     "duration": 120,
     "required_room_type": "exam_hall"
   },
   {
     "id": 6,
-    "course": "PHYS401",
+    "course": "MATH202",
     "duration": 120,
     "required_room_type": "exam_hall"
   },
   {
     "id": 7,
-    "course": "BIO501",
+    "course": "MATH203",
     "duration": 120,
     "required_room_type": "exam_hall"
   },
   {
     "id": 8,
+    "course": "MATH204",
+    "duration": 120,
+    "required_room_type": "exam_hall"
+  },
+  {
+    "id": 9,
+    "course": "ENG301",
+    "duration": 120,
+    "required_room_type": "exam_hall"
+  },
+  {
+    "id": 10,
+    "course": "ENG302",
+    "duration": 120,
+    "required_room_type": "exam_hall"
+  },
+  {
+    "id": 11,
+    "course": "ENG303",
+    "duration": 120,
+    "required_room_type": "exam_hall"
+  },
+  {
+    "id": 12,
+    "course": "PHYS401",
+    "duration": 120,
+    "required_room_type": "exam_hall"
+  },
+  {
+    "id": 13,
+    "course": "PHYS402",
+    "duration": 120,
+    "required_room_type": "exam_hall"
+  },
+  {
+    "id": 14,
+    "course": "PHYS403",
+    "duration": 120,
+    "required_room_type": "exam_hall"
+  },
+  {
+    "id": 15,
+    "course": "BIO501",
+    "duration": 120,
+    "required_room_type": "exam_hall"
+  },
+  {
+    "id": 16,
+    "course": "BIO502",
+    "duration": 120,
+    "required_room_type": "exam_hall"
+  },
+  {
+    "id": 17,
+    "course": "BIO503",
+    "duration": 120,
+    "required_room_type": "exam_hall"
+  },
+  {
+    "id": 18,
     "course": "CHEM601",
+    "duration": 120,
+    "required_room_type": "exam_hall"
+  },
+  {
+    "id": 19,
+    "course": "CHEM602",
+    "duration": 120,
+    "required_room_type": "exam_hall"
+  },
+  {
+    "id": 20,
+    "course": "ECON701",
+    "duration": 120,
+    "required_room_type": "exam_hall"
+  },
+  {
+    "id": 21,
+    "course": "ECON702",
+    "duration": 120,
+    "required_room_type": "exam_hall"
+  },
+  {
+    "id": 22,
+    "course": "PSY801",
+    "duration": 120,
+    "required_room_type": "exam_hall"
+  },
+  {
+    "id": 23,
+    "course": "SOC801",
+    "duration": 120,
+    "required_room_type": "exam_hall"
+  },
+  {
+    "id": 24,
+    "course": "HIST901",
+    "duration": 120,
+    "required_room_type": "exam_hall"
+  },
+  {
+    "id": 25,
+    "course": "ART902",
+    "duration": 120,
+    "required_room_type": "exam_hall"
+  },
+  {
+    "id": 26,
+    "course": "BUS701",
+    "duration": 120,
+    "required_room_type": "exam_hall"
+  },
+  {
+    "id": 27,
+    "course": "TECH801",
+    "duration": 120,
+    "required_room_type": "exam_hall"
+  },
+  {
+    "id": 28,
+    "course": "DATA901",
+    "duration": 120,
+    "required_room_type": "exam_hall"
+  },
+  {
+    "id": 29,
+    "course": "LAW701",
+    "duration": 120,
+    "required_room_type": "exam_hall"
+  },
+  {
+    "id": 30,
+    "course": "CS101",
+    "duration": 120,
+    "required_room_type": "exam_hall"
+  },
+  {
+    "id": 31,
+    "course": "MATH201",
+    "duration": 120,
+    "required_room_type": "exam_hall"
+  },
+  {
+    "id": 32,
+    "course": "ENG301",
+    "duration": 120,
+    "required_room_type": "exam_hall"
+  },
+  {
+    "id": 33,
+    "course": "PHYS401",
+    "duration": 120,
+    "required_room_type": "exam_hall"
+  },
+  {
+    "id": 34,
+    "course": "BIO501",
+    "duration": 120,
+    "required_room_type": "exam_hall"
+  },
+  {
+    "id": 35,
+    "course": "CHEM601",
+    "duration": 120,
+    "required_room_type": "exam_hall"
+  },
+  {
+    "id": 36,
+    "course": "ECON701",
+    "duration": 120,
+    "required_room_type": "exam_hall"
+  },
+  {
+    "id": 37,
+    "course": "HIST901",
     "duration": 120,
     "required_room_type": "exam_hall"
   }

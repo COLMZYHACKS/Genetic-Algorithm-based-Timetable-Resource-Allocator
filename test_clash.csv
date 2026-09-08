@@ -1,0 +1,4 @@
+course,lecturer,group,students,capacity,day,start_time,end_time,lecture hall
+CS101,Dr. Smith,CS-A,45,50,Monday,08:00,10:00,Room101
+CS102,Prof. Johnson,CS-B,42,50,Monday,09:00,11:00,Room102
+MATH201,Dr. Williams,MATH-A,38,40,Monday,08:30,10:30,Room103

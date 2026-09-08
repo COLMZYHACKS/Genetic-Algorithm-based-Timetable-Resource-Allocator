@@ -1,5 +1,8 @@
 # AI TIMETABLE RESOURCE ALLOCATOR
 
+**Author:** Malcolm Nettey (D4RK-D43mon)
+**Repository:** [COLMZYHACKS/Genetic-Algorithm-based-Timetable-Resource-Allocator](https://github.com/COLMZYHACKS/Genetic-Algorithm-based-Timetable-Resource-Allocator)
+
 An intelligent AI-powered system for optimizing educational timetables through genetic algorithms. This application automatically allocates lecturers, rooms, and timeslots to create conflict-free, efficient schedules.
 
 ## 🚀 Features

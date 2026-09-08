@@ -1,46 +1,34 @@
 import random
 from services.fitness import fitness
-from services.database_service import get_rooms_data, get_timeslots_data
+from concurrent.futures import ProcessPoolExecutor
+import multiprocessing
+from services.database_service import get_rooms_data
+from services.parser import normalize_exam_day, normalize_period_string, split_day_from_period
 
 # GA PARAMETERS - BALANCED FOR PERFORMANCE
-POP_SIZE = 50  # Reduced from 200 for faster generation
-GENERATIONS = 50  # Reduced from 300 for faster generation
-ELITE_SIZE = 5  # Reduced proportionally
-TOURNAMENT_SIZE = 4  # Reduced for performance
+POP_SIZE = 80
+GENERATIONS = 500
+RESTARTS = 3
+ELITE_SIZE = 8
+TOURNAMENT_SIZE = 6
 MUTATION_RATE = 0.15  # Reduced from 0.2 for stability
 
 # TIMETABLE STRUCTURE
 DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+COURSE_TIMESLOTS = [
+    "07:00-09:00",
+    "09:00-11:00",
+    "11:00-13:00",
+    "13:30-15:30",
+    "15:30-17:30",
+    "17:30-19:30"
+]
 
 
-def normalize_period_string(period_value):
-    if period_value is None:
-        return None
-    text = str(period_value).strip()
-    parts = [p.strip() for p in text.split("-")]
-    if len(parts) != 2:
-        return text
-
-    def parse_comp(comp):
-        cleaned = comp.replace(" ", "").replace(":00", "")
-        time_parts = cleaned.split(":")
-        try:
-            if len(time_parts) == 1:
-                hour = int(time_parts[0])
-                minute = 0
-            else:
-                hour = int(time_parts[0])
-                minute = int(time_parts[1])
-        except ValueError:
-            return None
-        return hour * 60 + minute
-
-    start = parse_comp(parts[0])
-    end = parse_comp(parts[1])
-    if start is None or end is None:
-        return text
-
-    return f"{start // 60:02d}:{start % 60:02d}-{end // 60:02d}:{end % 60:02d}"
+def get_course_timeslots():
+    # The institution defines strict course periods and the GA must ignore any CSV time values.
+    # The 13:00-13:30 break is excluded entirely from scheduling.
+    return COURSE_TIMESLOTS.copy()
 
 
 # 🧬 CREATE ONE TIMETABLE (INDIVIDUAL)
@@ -68,16 +56,34 @@ def get_room_choices(row, rooms):
 def create_individual(df, rooms, periods):
     individual = []
 
+    def has_value(value):
+        if value is None:
+            return False
+        text = str(value).strip().lower()
+        return text not in ("", "nan", "none")
+
     for _, row in df.iterrows():
         room_choices = get_room_choices(row, rooms)
         room = random.choice(room_choices) if room_choices else None
+
+        day_value = row.get("day")
+        period_value = row.get("period")
+
+        if isinstance(period_value, str) and period_value.strip():
+            from_day, normalized_period = split_day_from_period(period_value)
+            if from_day:
+                day_value = from_day
+            period_value = normalize_period_string(normalized_period or period_value)
+
+        day = day_value if day_value is not None and str(day_value).strip() else random.choice(DAYS)
+        period = period_value if period_value is not None and str(period_value).strip() else random.choice(periods)
 
         gene = {
             "course": row.get("course"),
             "lecturer": row.get("lecturer"),
             "room": room,
-            "day": random.choice(DAYS),
-            "period": random.choice(periods),
+            "day": day,
+            "period": period,
             "group": row.get("group", "default"),
             "capacity": row.get("capacity", 100),
             "students": row.get("students", 50)
@@ -140,6 +146,85 @@ def mutate_adaptive(individual, mutation_rate, rooms, periods):
     return individual
 
 
+def repair_individual(individual, periods):
+    def build_bookings(ind):
+        lecturer_bookings = {}
+        room_bookings = {}
+        group_bookings = {}
+        for gene in ind:
+            lecturer = gene.get("lecturer")
+            room = gene.get("room")
+            group = gene.get("group")
+            day = gene.get("day")
+            period = gene.get("period")
+            if lecturer:
+                lecturer_bookings[(lecturer, day, period)] = lecturer_bookings.get((lecturer, day, period), 0) + 1
+            if room:
+                room_bookings[(room, day, period)] = room_bookings.get((room, day, period), 0) + 1
+            if group:
+                group_bookings[(group, day, period)] = group_bookings.get((group, day, period), 0) + 1
+        return lecturer_bookings, room_bookings, group_bookings
+
+    def has_conflict(gene, bookings):
+        lecturer, room, group, day, period = gene.get("lecturer"), gene.get("room"), gene.get("group"), gene.get("day"), gene.get("period")
+        if lecturer and bookings[0].get((lecturer, day, period), 0) > 1:
+            return True
+        if room and bookings[1].get((room, day, period), 0) > 1:
+            return True
+        if group and bookings[2].get((group, day, period), 0) > 1:
+            return True
+        return False
+
+    fixed = [dict(gene) for gene in individual]
+    bookings = build_bookings(fixed)
+
+    for _ in range(3):
+        moved = False
+        for gene in fixed:
+            if not has_conflict(gene, bookings):
+                continue
+            current_keys = {
+                "lecturer": (gene.get("lecturer"), gene.get("day"), gene.get("period")),
+                "room": (gene.get("room"), gene.get("day"), gene.get("period")),
+                "group": (gene.get("group"), gene.get("day"), gene.get("period"))
+            }
+            for day in DAYS:
+                if moved:
+                    break
+                for period in periods:
+                    if day == gene.get("day") and period == gene.get("period"):
+                        continue
+                    conflict = False
+                    if gene.get("lecturer") and bookings[0].get((gene["lecturer"], day, period), 0) > 0:
+                        conflict = True
+                    if gene.get("room") and bookings[1].get((gene["room"], day, period), 0) > 0:
+                        conflict = True
+                    if gene.get("group") and bookings[2].get((gene["group"], day, period), 0) > 0:
+                        conflict = True
+                    if conflict:
+                        continue
+                    # Move gene to a clean slot
+                    for key, value in current_keys.items():
+                        if value[0] is None:
+                            continue
+                        if key == "lecturer":
+                            bookings[0][value] -= 1
+                        elif key == "room":
+                            bookings[1][value] -= 1
+                        elif key == "group":
+                            bookings[2][value] -= 1
+                    gene["day"] = day
+                    gene["period"] = period
+                    bookings[0][(gene.get("lecturer"), day, period)] = bookings[0].get((gene.get("lecturer"), day, period), 0) + 1
+                    bookings[1][(gene.get("room"), day, period)] = bookings[1].get((gene.get("room"), day, period), 0) + 1
+                    bookings[2][(gene.get("group"), day, period)] = bookings[2].get((gene.get("group"), day, period), 0) + 1
+                    moved = True
+                    break
+        if not moved:
+            break
+    return fixed
+
+
 # 🏆 TOURNAMENT SELECTION (BETTER THAN RANDOM)
 def select(population):
     tournament = random.sample(population, TOURNAMENT_SIZE)
@@ -148,72 +233,124 @@ def select(population):
 
 # 🚀 MAIN GA LOOP - ENHANCED
 def run_ga(df):
+    if df is None or getattr(df, 'empty', False):
+        raise ValueError("No timetable data available for generation. Please upload a file or enable database data with populated courses.")
+
     # Load data within app context
     try:
         rooms = get_rooms_data()
-        timeslots = get_timeslots_data()
-        
-        if not rooms:
-            raise ValueError("No rooms found in database. Please add rooms in Data Management.")
-        if not timeslots:
-            raise ValueError("No timeslots found in database. Please add timeslots in Data Management.")
-        
-        periods = sorted({
-            normalize_period_string(slot["time"])
-            for slot in timeslots
-            if normalize_period_string(slot["time"])
-        })
-        
+
+        if not rooms and "room" not in df.columns:
+            raise ValueError("No rooms found in database and uploaded file does not include room assignments. Please add rooms in Data Management or provide room data in the upload.")
+
+        periods = get_course_timeslots()
         if not periods:
-            raise ValueError("No valid periods could be extracted from timeslots. Check timeslot format.")
-        
+            raise ValueError("Fixed course timeslots could not be loaded. Please check the schedule configuration.")
+
     except Exception as e:
         raise Exception(f"Failed to load essential data: {str(e)}")
 
-    population = create_population(df, rooms, periods)
-    best_fitness_history = []
-    stagnation_counter = 0
-    last_best_fitness = float('inf')
+    best_solution = None
+    best_solution_fitness = float('inf')
 
-    for generation in range(GENERATIONS):
-        # Sort by fitness (lower is better)
-        population = sorted(population, key=lambda x: fitness(x))
-        current_best = fitness(population[0])
-        best_fitness_history.append(current_best)
+    # Create a single executor for the whole GA run to avoid repeated worker spawn overhead on Windows
+    executor = None
+    try:
+        max_workers = min(4, max(1, multiprocessing.cpu_count() - 1))
+        executor = ProcessPoolExecutor(max_workers=max_workers)
+    except Exception:
+        executor = None
 
-        # Adaptive mutation and stagnation detection
-        if current_best == last_best_fitness:
-            stagnation_counter += 1
-        else:
-            stagnation_counter = 0
-            last_best_fitness = current_best
+    for attempt in range(RESTARTS):
+        population = create_population(df, rooms, periods)
+        best_fitness_history = []
+        stagnation_counter = 0
+        last_best_fitness = float('inf')
 
-        # If stagnated for 20 generations, increase mutation rate temporarily
-        current_mutation_rate = MUTATION_RATE
-        if stagnation_counter > 20:
-            current_mutation_rate = min(MUTATION_RATE * 2, 0.5)  # Cap at 50%
+        for generation in range(GENERATIONS):
+            # Evaluate fitness in parallel (fast path), fallback to serial if unavailable
+            try:
+                if executor is not None:
+                    fitness_values = list(executor.map(fitness, population))
+                else:
+                    fitness_values = [fitness(ind) for ind in population]
+            except Exception:
+                fitness_values = [fitness(ind) for ind in population]
 
-        # Elitism (keep best solutions)
-        next_gen = population[:ELITE_SIZE]
+            # Pair and sort by fitness value (lower is better)
+            paired = list(zip(population, fitness_values))
+            paired.sort(key=lambda p: p[1])
+            population = [p for p, _ in paired]
+            fitness_values = [f for _, f in paired]
+            current_best = fitness_values[0]
+            best_fitness_history.append(current_best)
 
-        # Generate rest of population
-        while len(next_gen) < POP_SIZE:
-            parent1 = select(population)
-            parent2 = select(population)
+            # Adaptive mutation and stagnation detection
+            if current_best == last_best_fitness:
+                stagnation_counter += 1
+            else:
+                stagnation_counter = 0
+                last_best_fitness = current_best
 
-            child = crossover(parent1, parent2)
-            child = mutate_adaptive(child, current_mutation_rate, rooms, periods)
+            # If stagnated for 20 generations, increase mutation rate temporarily
+            current_mutation_rate = MUTATION_RATE
+            if stagnation_counter > 20:
+                current_mutation_rate = min(MUTATION_RATE * 2, 0.5)  # Cap at 50%
 
-            next_gen.append(child)
+            # Elitism (keep best solutions)
+            next_gen = population[:ELITE_SIZE]
 
-        population = next_gen
+            # Tournament selection using computed fitness_values to avoid re-evaluation
+            def select_index(pop_size, fitness_vals):
+                inds = random.sample(range(pop_size), TOURNAMENT_SIZE)
+                return min(inds, key=lambda i: fitness_vals[i])
 
-        # Progress reporting
-        progress_percent = int((generation + 1) / GENERATIONS * 100)
-        if generation % 5 == 0 or generation == GENERATIONS - 1:
-            print(f"PROGRESS:{progress_percent}% | Gen {generation + 1}/{GENERATIONS} | Fitness: {current_best:.2f}")
+            # Generate rest of population
+            while len(next_gen) < POP_SIZE:
+                idx1 = select_index(len(population), fitness_values)
+                idx2 = select_index(len(population), fitness_values)
+                parent1 = population[idx1]
+                parent2 = population[idx2]
 
-    # Return best solution
-    best = min(population, key=lambda x: fitness(x))
-    print(f"\nGA completed. Final best fitness: {fitness(best)}")
-    return best
+                child = crossover(parent1, parent2)
+                child = mutate_adaptive(child, current_mutation_rate, rooms, periods)
+
+                next_gen.append(child)
+
+            population = next_gen
+
+            # Progress reporting
+            progress_percent = int((generation + 1) / GENERATIONS * 100)
+            if generation % 5 == 0 or generation == GENERATIONS - 1:
+                print(f"PROGRESS:{progress_percent}% | Gen {generation + 1}/{GENERATIONS} | Fitness: {current_best:.2f}")
+
+        # Final evaluation of the chosen candidates
+        try:
+            if executor is not None:
+                final_fitnesses = list(executor.map(fitness, population))
+            else:
+                final_fitnesses = [fitness(ind) for ind in population]
+        except Exception:
+            final_fitnesses = [fitness(ind) for ind in population]
+
+        best_idx = int(min(range(len(population)), key=lambda i: final_fitnesses[i]))
+        candidate = population[best_idx]
+        candidate = repair_individual(candidate, periods)
+        candidate_fitness = fitness(candidate)
+        print(f"ATTEMPT {attempt + 1}/{RESTARTS} best fitness: {candidate_fitness}")
+        if candidate_fitness < best_solution_fitness:
+            best_solution_fitness = candidate_fitness
+            best_solution = candidate
+
+    # Clean up executor
+    try:
+        if executor is not None:
+            executor.shutdown(wait=True)
+    except Exception:
+        pass
+
+    if best_solution is None:
+        raise Exception("GA failed to produce a schedule")
+
+    print(f"\nGA completed after {RESTARTS} restart(s). Best fitness: {best_solution_fitness}")
+    return best_solution

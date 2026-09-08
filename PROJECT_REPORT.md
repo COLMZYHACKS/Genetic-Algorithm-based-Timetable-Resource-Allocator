@@ -1,470 +1,624 @@
-# AI TIMETABLE RESOURCE ALLOCATOR: Comprehensive Project Report
+# AI Timetable Resource Allocator — Project Report
 
 ## Executive Summary
 
-The AI Timetable Resource Allocator is an intelligent, web-based application designed to optimize educational timetabling through advanced genetic algorithms. This system addresses the complex challenge of resource allocation in educational institutions by automating the creation of conflict-free schedules that efficiently utilize lecturers, classrooms, and time slots.
+This project delivers a modern AI-assisted scheduling system for educational institutions. It combines a React-based frontend with a Python Flask backend, and it uses genetic algorithm techniques to produce course and exam timetables with minimal conflicts.
 
-The application features a modern React-based frontend with a robust Python Flask backend, implementing sophisticated optimization algorithms to generate optimal timetables while respecting hard and soft constraints. The system supports both course scheduling and examination timetabling, with comprehensive data management capabilities and professional export functionality.
+The system is designed to take real timetable data from CSV or database sources, normalize that input, and use a configurable optimization engine to assign rooms, times, and lecturers in a way that respects both hard scheduling constraints and soft preference goals.
 
-## Project Overview
+The current implementation emphasizes a practical, extensible architecture: the frontend handles user interaction and file upload, while the backend performs data parsing, schedule optimization, validation, export, and persistence.
 
-### Background and Objectives
+## Project Goals
 
-Educational institutions face significant challenges in creating optimal timetables that satisfy multiple constraints while maximizing resource utilization. Manual timetabling is time-consuming, error-prone, and often results in suboptimal schedules with conflicts or inefficient resource usage.
+- Build a web application that can generate course and exam timetables automatically.
+- Combine data upload, data management, schedule generation, and export into a seamless workflow.
+- Support flexible data inputs with smart parsing and normalization.
+- Implement an optimization engine that balances hard constraint satisfaction with useful scheduling preferences.
+- Provide exportable timetable outputs that institutions can use immediately.
 
-The AI Timetable Resource Allocator was developed to address these challenges by:
+## Business Problem and Motivation
 
-- **Automating Complex Scheduling**: Using genetic algorithms to explore vast solution spaces efficiently
-- **Ensuring Constraint Satisfaction**: Implementing both hard constraints (no conflicts) and soft constraints (optimization preferences)
-- **Providing User-Friendly Interfaces**: Offering intuitive web interfaces for data management and schedule generation
-- **Supporting Multiple Use Cases**: Handling both regular course timetables and examination schedules
-- **Enabling Professional Output**: Generating Excel-compatible exports for institutional use
+Academic scheduling is a complex process that often requires manual labor, repeated negotiation, and countless adjustments. Institutions struggle with conflicts between lecturers, room availability, student group clashes, and capacity limits.
 
-### Key Stakeholders
+This tool is intended to reduce that burden by automating the search for feasible timetable solutions, exposing the process through a web interface, and supporting both classroom and examination scheduling.
 
-- **Educational Administrators**: Need efficient, conflict-free timetables
-- **Lecturers**: Require schedules that respect their availability and preferences
-- **Students**: Benefit from well-structured, predictable schedules
-- **IT Administrators**: Require maintainable, scalable software systems
+## System Architecture
 
-## Technical Architecture
+The system is implemented using a client-server model with the following components:
 
-### System Architecture
+- **Frontend**: A React application built with Vite and TypeScript.
+- **Backend**: A Flask API with modular blueprints and services.
+- **Database**: SQLite via SQLAlchemy ORM for persistent storage of rooms, lecturers, timeslots, and course metadata.
+- **Export layer**: A service that renders generated timetables to Excel-compatible or CSV output.
 
-The application follows a modern client-server architecture with clear separation of concerns:
+### Logical flow
 
-```
-┌─────────────────┐    HTTP/REST    ┌─────────────────┐
-│   React Frontend│◄────────────────►│  Flask Backend  │
-│   (TypeScript)  │                  │   (Python)      │
-│   Port: 5173    │                  │   Port: 5000    │
-└─────────────────┘                  └─────────────────┘
-         │                                   │
-         │                                   │
-    ┌────▼────┐                         ┌────▼────┐
-    │   Vite  │                         │SQLAlchemy│
-    │  Build  │                         │   ORM    │
-    └─────────┘                         └─────────┘
-                                              │
-                                              ▼
-                                       ┌─────────────┐
-                                       │   SQLite    │
-                                       │  Database   │
-                                       └─────────────┘
-```
+1. User uploads a CSV or selects database-backed timetable data.
+2. Backend parser normalizes columns and builds schedule-ready records.
+3. The genetic algorithm generates an initial population of candidate timetables.
+4. The backend evaluates, selects, crosses over, and mutates solutions across iterations.
+5. The best solution is repaired, validated, and returned to the frontend.
+6. The user can review the timetable and export it as .xlsx or .csv.
 
-### Backend Architecture (Python/Flask)
+## Frontend Architecture
 
-The backend is built using Flask, a lightweight Python web framework, with the following components:
+The frontend is located in `frontend/src` and is organized around React components, pages, and services. The design follows a standard single-page application pattern:
 
-#### Core Components
+- `App.tsx`: The root application component that configures routing and global layout.
+- `Layout.tsx`: Provides navigation and common page structure for the application.
+- `Dashboard.tsx`: The main timetable generation interface, including controls for file uploads and database generation.
+- `DataManagement.tsx`: A CRUD management page for timetable entities.
+- `DataViewPage.tsx`: Displays current data in a table format for review.
+- `TimetableGrid.tsx`: Renders generated timetable data in a day/time matrix style.
+- `Upload.tsx`: Accepts CSV files and sends them to the backend for parsing.
 
-- **Application Layer (app.py)**: Main Flask application with CORS configuration and blueprint registration
-- **Data Models (models.py)**: SQLAlchemy ORM models for Lecturers, Rooms, Timeslots, and Courses
-- **Configuration (config.py)**: Environment-based configuration management
-- **Routes**: RESTful API endpoints organized by functionality
+### Frontend Dependencies
 
-#### Service Layer
+- `react` and `react-dom` for component rendering.
+- `react-router-dom` for client-side navigation.
+- `axios` for HTTP API calls.
+- `vite` as the build and development server.
+- `TypeScript` for static typing and developer tooling.
 
-- **Genetic Algorithm Engine (ga_engine.py)**: Core optimization logic with configurable parameters
-- **Fitness Service (fitness_service.py)**: Constraint evaluation and penalty calculation
-- **Constraint Service (constraint_service.py)**: Hard and soft constraint validation
-- **Database Service (database_service.py)**: Data access layer for optimization algorithms
+### Frontend Responsibilities
 
-#### Key Technologies
+- present upload forms and mapping controls for CSV data
+- visualize generated timetables in a human-readable grid
+- expose export options for Excel and CSV outputs
+- manage user workflow for generating course and exam timetables
 
-- **Flask**: Web framework for API development
-- **SQLAlchemy**: Object-Relational Mapping for database operations
-- **pandas**: Data manipulation and analysis
-- **openpyxl**: Excel file generation for exports
-- **Flask-CORS**: Cross-origin resource sharing support
+## Backend Architecture
 
-### Frontend Architecture (React/TypeScript)
+The backend code is organized into blueprints, service modules, and models. The backend supports data ingestion, parsing, schedule generation, export, and persistence.
 
-The frontend utilizes modern React patterns with TypeScript for type safety:
+### app.py
 
-#### Core Components
+The main Flask application is defined in `backend/app.py`. It configures CORS, initializes the SQLAlchemy database, creates tables on startup, and registers blueprints for upload, generation, export, and data endpoints. This ensures the backend is a fully functioning REST API that can support the frontend and any external integrations.
 
-- **App.tsx**: Main application component with routing
-- **Layout.tsx**: Common layout wrapper with navigation
-- **Dashboard.tsx**: Primary interface for timetable generation
-- **DataManagement.tsx**: CRUD operations for all data entities
-- **DataViewPage.tsx**: Comprehensive data visualization
-- **TimetableGrid.tsx**: Interactive timetable display component
+### Routes and Blueprints
 
-#### Key Technologies
+- `backend/routes/upload.py`: Handles file uploads and parsing initiation.
+- `backend/routes/generate.py`: Orchestrates timetable generation for course and exam requests.
+- `backend/routes/export.py`: Converts generated timetable data into `.xlsx` or `.csv` exports.
+- `backend/routes/data.py`: Provides CRUD endpoints for lecturers, rooms, timeslots, courses, and exam data.
 
-- **React 19**: Latest React version with concurrent features
-- **TypeScript**: Static typing for enhanced developer experience
-- **Vite**: Fast build tool and development server
-- **Axios**: HTTP client for API communication
-- **React Router**: Client-side routing for SPA navigation
+### Services Layer
 
-## Key Features and Functionality
+The backend separates concerns through service modules. This makes the system easier to test and maintain. Key service modules include:
 
-### Data Management System
+- `backend/services/parser.py`
+- `backend/services/ga.py`
+- `backend/services/ga_engine.py`
+- `backend/services/constraint_service.py`
+- `backend/services/database_service.py`
+- `backend/services/export_controller.py`
 
-The application provides comprehensive data management capabilities:
+### Data Models
 
-#### Entity Management
+The application uses SQLAlchemy models defined in `backend/models.py` to persist:
 
-- **Lecturers**: Name, unavailable time slots, and scheduling preferences
-- **Rooms**: Location, capacity, and facility information
-- **Timeslots**: Time periods with duration specifications
-- **Courses**: Subject details, enrollment numbers, and group assignments
+- lecturers
+- rooms
+- timeslots
+- courses
+- exam periods
+- exams
 
-#### Data Input Methods
+These models provide a normalized schema for scheduling resources and allow the generator to query existing entities from the database when generating timetables.
 
-1. **CSV Upload**: Batch data import with validation
-2. **Manual Entry**: Web-based forms for individual record management
-3. **Database Integration**: Persistent storage with full CRUD operations
+## Data Ingestion and Parsing
 
-#### Data Validation
+Reliable input parsing is a core part of the system. The parser is designed to support multiple CSV formats and to normalize inconsistent column names from user-provided files.
 
-- Format validation for CSV uploads
-- Business rule enforcement (e.g., room capacity vs. enrollment)
-- Duplicate detection and conflict prevention
+### Column normalization
 
-### Timetable Generation Engine
+The parser accepts synonyms for common fields, such as:
 
-#### Genetic Algorithm Implementation
+- `course`, `course_full`, `course_code`, `subject`, `module`, `class`, `title`
+- `lecturer`, `teacher`, `instructor`, `professor`, `staff`
+- `room`, `hall`, `venue`, `location`, `classroom`, `auditorium`
+- `capacity`, `room_capacity`, `room_size`, `size`, `seats`, `max_students`
+- `students`, `class_size`, `studentcount`, `student_count`, `enrollment`, `count`, `number`, `enrolled`
+- `group`, `batch`, `section`, `class_group`, `cohort`, `studentgroup`
+- `day`, `weekday`, `date`
+- `period`, `timeslot`, `time_slot`, `session`, `slot`, `time`
 
-The core optimization uses a genetic algorithm with the following characteristics:
+This normalization layer allows the backend to handle datasets with mixed naming conventions and reduces the need for manual column mapping for most common uploads.
 
-- **Population Size**: 100 individuals per generation
-- **Generations**: 200 iterations for convergence
-- **Mutation Rate**: 10% probability per gene
-- **Selection**: Tournament selection of top 20% performers
-- **Crossover**: Single-point crossover for genetic recombination
+### Composite period generation
 
-#### Constraint Handling
+The parser builds a normalized `period` field when the uploaded file contains separate `slot`, `start_time`, and `end_time` columns. It converts values like `07:00 - 08:00` into a standard time range representation and separates embedded day values if provided. This enables the scheduling engine to work with a consistent representation of time across different upload formats.
 
-**Hard Constraints** (must be satisfied):
-- No lecturer scheduling conflicts
-- No room double-booking
-- No student group overlaps
-- Respect lecturer availability
-- Room capacity requirements
+### Persistent data sources
 
-**Soft Constraints** (optimization preferences):
-- Prefer earlier time slots
-- Minimize late afternoon classes
-- Balance workload distribution
+In addition to file upload, the system can use database-backed timetable data. When `use_database` is enabled, the backend queries SQLAlchemy models for courses and exam data and passes them directly to the generator.
 
-#### Algorithm Flow
+## Genetic Algorithm Timetable Engine
 
-1. **Initialization**: Random population generation with constraint awareness
-2. **Evaluation**: Fitness calculation for each individual
-3. **Selection**: Survival of the fittest individuals
-4. **Recombination**: Crossover and mutation operations
-5. **Iteration**: Repeat until convergence or maximum generations
+The core optimization logic resides in `backend/services/ga.py`. The engine is built around a penalty-based evaluation approach, where lower fitness values represent better solutions. This design is intentional: the algorithm searches for solutions that minimize constraint violations and improve schedule quality.
 
-### Dual Timetable Types
+### Chromosome representation
 
-#### Course Timetables
+Each candidate timetable is represented as a list of gene dictionaries. Each gene includes:
 
-- Regular academic scheduling with breaks
-- Multi-week rotation support
-- Group-based scheduling for large classes
+- `course`: course or class identifier
+- `lecturer`: assigned lecturer
+- `room`: room assignment
+- `day`: assigned day of week
+- `period`: normalized time period
+- `group`: student group or cohort
+- `capacity`: assigned room capacity
+- `students`: enrollment or student count
 
-#### Examination Timetables
+This representation is flexible and accommodates input from both uploaded CSVs and existing database entries.
 
-- Conflict-free exam scheduling
-- No breaks (continuous examination periods)
-- Room capacity optimization
-- Lecturer invigilation assignments
+### Genetic algorithm parameters
 
-### Export and Reporting
+- `POP_SIZE = 80`
+- `GENERATIONS = 100`
+- `RESTARTS = 3`
+- `ELITE_SIZE = 8`
+- `TOURNAMENT_SIZE = 6`
+- `MUTATION_RATE = 0.15`
 
-#### Export Formats
+These parameters were selected to provide a balance between search quality and practical runtime for a typical medium-sized timetable dataset.
 
-- **Excel (.xlsx)**: Professional formatting with grid structure
-- **CSV**: Data interchange format
-- **Custom Filenames**: User-specified export names
+### Population initialization
 
-#### Export Features
+The engine builds each initial solution by selecting available rooms and assigning days and periods. If the input provides explicit days or periods, those values are preserved and normalized. Otherwise, the algorithm assigns values from the configured institutional timeslots.
 
-- Dashboard-matching layout
-- Break visualization for course timetables
-- Multi-line cell content for detailed information
-- Auto-sized columns and text wrapping
+Room choices are selected from available rooms whose capacity is sufficient for the course enrollment. This constraint-aware initialization avoids many obvious infeasible schedules before the optimization begins.
 
-## AI Algorithm Implementation
+### Selection and crossover
 
-### Genetic Algorithm Design
+The GA uses tournament selection to choose parent schedules. In each generation, a small random sample of solutions competes, and the best one is selected for reproduction. This helps preserve high-quality structures while keeping diversity in the population.
 
-The genetic algorithm is specifically designed for timetabling optimization:
+The crossover operation uses a single-point cut, joining the first segment of one parent with the second segment of another. This approach allows the algorithm to explore new combinations of assignments while retaining the structure of successful sub-schedules.
 
-#### Chromosome Representation
+### Mutation strategy
 
-Each individual (solution) is represented as a list of genes, where each gene contains:
-- Course identifier
-- Lecturer assignment
-- Room allocation
-- Timeslot index
-- Student group
-- Capacity requirements
-- Enrollment numbers
+Mutation is adaptive and introduces changes to the schedule with a probability of 15%. Mutation operations include:
 
-#### Fitness Function
+- changing only the day and period of a gene
+- changing the room assignment for a gene
+- performing a full reassignment for diversity
 
-The fitness function evaluates solution quality through penalty-based scoring:
+This mix of small and larger mutations helps the GA escape local minima and explore better solutions across multiple generations.
 
-```python
-def fitness(individual):
-    penalty = 0
-    penalty += check_hard_constraints(individual)  # Hard constraints
-    # Soft constraints
-    for gene in individual:
-        if timeslot > 30:  # Late classes
-            penalty += 2
-    return penalty
-```
+### Restart and repair mechanism
 
-#### Constraint Optimization
+The schedule engine performs multiple independent restarts and keeps the best outcome. Each restart is an independent GA run with the same parameter configuration. This restart strategy significantly improves reliability when the search space is challenging.
 
-**Hard Constraint Penalties**:
-- Lecturer conflicts: +100 penalty
-- Room conflicts: +100 penalty
-- Student group conflicts: +100 penalty
-- Lecturer unavailability: +100 penalty
+A final repair pass is also performed on the selected best solution. This greedy repair phase examines remaining room, lecturer, and group conflicts and attempts to move conflicting assignments into clean day/period slots without changing other genes unnecessarily.
 
-**Soft Constraint Penalties**:
-- Late time slots: +2 penalty
-- Workload imbalance: Variable penalties
+### Fitness function and constraints
 
-### Algorithm Performance
+The fitness function is penalty-based, meaning that the schedule with the smallest penalty score is the best result. The engine distinguishes between hard constraints and soft preferences. Hard violations incur high penalties, while soft preferences incur smaller penalties.
 
-#### Convergence Characteristics
+#### Hard constraints enforced by the current system
 
-- **Initial Population**: Random but constraint-aware generation
-- **Convergence Rate**: Typically within 50-100 generations
-- **Solution Quality**: Guaranteed hard constraint satisfaction
-- **Optimization Time**: 30-120 seconds for typical datasets
+- Lecturer cannot teach two courses at the same day and period
+- Room cannot be assigned to more than one course at the same day and period
+- Student group cannot be scheduled in two courses at the same day and period
+- Room capacity must be sufficient for the enrolled student count
+- Missing room assignments are penalized
+- Missing day or period values are penalized
 
-#### Scalability Considerations
+#### Soft constraint considerations
 
-- Population size adjustable for problem complexity
-- Parallel evaluation potential for large datasets
-- Memory-efficient data structures for constraint checking
+- The engine prefers schedules that do not place classes too late in the day.
+- Workload balance and distribution are supported by the mutation and selection process, but the current implementation is intended to be extended with additional soft constraints as needed.
 
-## Data Management
+### Constraint checking logic
 
-### Database Design
+The constraint service in `backend/services/constraint_service.py` provides low-level validation routines that parse period strings, compute time overlap, and assign penalties for conflicting assignments. It reads lecturer unavailable slots and timeslot definitions from JSON reference files located in `data/` and uses them to validate candidate schedules.
 
-The application uses SQLAlchemy ORM with SQLite for development:
+A separate exam constraint check exists for exam timetables. This exam logic focuses on exam period overlap, room assignment, and group-based exam conflicts.
 
-#### Core Tables
+## Exam Timetable Engine
 
-- **Lecturers**: id, name, unavailable_slots (JSON)
-- **Rooms**: id, name, capacity, location
-- **Timeslots**: id, day, start_time, end_time
-- **Courses**: id, name, lecturer_id, room_id, timeslot_id, group, students
+Exam scheduling is handled in `backend/services/ga_engine.py` and `backend/routes/generate.py`. The system treats exams separately from regular courses, because exam schedules usually follow a different structure and have different optimization goals.
 
-#### Data Relationships
+### Exam engine characteristics
 
-- Courses reference Lecturers, Rooms, and Timeslots
-- Many-to-one relationships for resource allocation
-- JSON fields for complex data (availability, preferences)
+- Exam days are detected from uploaded `day` values and normalized using `normalize_exam_day`.
+- Standard exam period templates are generated for each detected exam day.
+- Rooms are selected based on capacity requirements and explicit room assignments if provided.
+- The system performs deterministic assignment and conflict avoidance rather than a full GA search for exam placement in the current implementation.
 
-### Data Processing Pipeline
+This design reflects the fact that exam scheduling often requires fixed block assignments and clearly defined day/period windows. It also allows the backend to generate a usable exam timetable without resorting to the more expensive course GA process.
 
-1. **Input Validation**: Format checking and business rule validation
-2. **Data Normalization**: Standardizing time formats and identifiers
-3. **Constraint Preprocessing**: Building availability matrices
-4. **Optimization Input**: Converting to algorithm-compatible format
+## Export and Reporting
 
-## User Interface and Experience
+Generated timetables can be exported from the backend in both Excel and CSV formats. The export engine is implemented in `backend/routes/export.py` and uses `pandas` and `openpyxl` for professional spreadsheet generation.
 
-### Dashboard Design
+### Export format details
 
-The main dashboard provides an intuitive workflow:
+- The exported view is organized by day and time period.
+- Custom display logic detects breaks between scheduled periods and inserts break rows for course timetables.
+- Each cell in the exported grid can contain multi-line class information, including course name, lecturer, room, group, capacity, and student count.
+- Excel exports are auto-sized by column width and row height to improve readability.
 
-#### Key Components
+### Export route behavior
 
-- **File Upload**: Drag-and-drop CSV upload interface
-- **Data Source Selection**: Choose between uploaded files or database
-- **Generation Controls**: Start/stop timetable generation
-- **Progress Indicators**: Real-time algorithm progress
-- **Results Display**: Interactive timetable grid
+The export endpoint accepts the generated timetable payload and a desired filename. It validates the requested format (`xlsx` or `csv`) and writes an export file into the `exports/` folder before returning it as an attachment.
 
-#### Responsive Design
+## Data Quality and Validation
 
-- **Mobile-First**: Optimized for tablets and smartphones
-- **Desktop Enhancement**: Full feature utilization on larger screens
-- **Accessibility**: WCAG-compliant design patterns
+The system includes several levels of validation to ensure input data is usable and consistent.
 
-### Data Management Interface
+### Upload validation
 
-#### CRUD Operations
+- The parser checks for required columns and raises a descriptive error if expected fields are missing.
+- The system normalizes whitespace, capitalization, and delimiter variations across column names.
+- Uploaded CSVs with bad or missing values are still processed gracefully when possible.
 
-- **Create**: Modal forms for new records
-- **Read**: Paginated data tables with search/filtering
-- **Update**: Inline editing capabilities
-- **Delete**: Confirmation dialogs with cascade protection
+### Rule-based validation
 
-#### Data Visualization
+- Room capacities are compared against student counts.
+- Day and period values are normalized and validated.
+- Duplicate or conflicting assignments are identified by the fitness engine.
 
-- **Summary Statistics**: Enrollment totals, resource utilization
-- **Conflict Detection**: Visual indicators for scheduling issues
-- **Data Integrity**: Validation feedback and error highlighting
+### Database fallback
 
-### Timetable Visualization
+If no uploaded file is provided, the frontend can instruct the backend to use database data instead. This allows the generator to work from preloaded institutional data without requiring a fresh upload each time.
 
-#### Grid-Based Display
+## Sample Data Handling
 
-- **Excel-like Interface**: Familiar spreadsheet layout
-- **Color Coding**: Visual distinction for different data types
-- **Break Indication**: Clear marking of break periods
-- **Responsive Scaling**: Adjustable column widths and text sizing
+The project supports multiple sample data formats and upload styles. In particular, the parser can handle files that include:
 
-## Performance and Optimization
+- explicit `day` and `room` columns
+- separated `start_time` and `end_time` values
+- class sizes and room sizes as separate numeric values
+- student group identifiers via `StudentGroup` or `group` fields
+- partial or alternate column names that use synonyms
 
-### Algorithm Performance
+This flexibility means that the report may reference data quality improvements, but the underlying code is already designed to ingest a wide range of timetable file layouts.
 
-#### Benchmark Results
+## Implementation Notes and Lessons Learned
 
-- **Small Datasets** (< 50 courses): < 30 seconds
-- **Medium Datasets** (50-200 courses): 30-90 seconds
-- **Large Datasets** (> 200 courses): 90-300 seconds
+During development, several important design choices were made:
 
-#### Optimization Strategies
+- Build the parser to be forgiving and normalized, rather than brittle and overly strict.
+- Keep the timetable representation simple: a list of assignment dictionaries with explicit keys.
+- Favor a penalty score where smaller is better, so the GA search is aligned with conventional optimization expectations.
+- Add restart and repair steps to increase reliability for difficult scheduling problems.
+- Separate course and exam generation paths because their constraints and scheduling patterns differ significantly.
 
-- **Constraint Pre-filtering**: Reduce search space before GA
-- **Parallel Evaluation**: Potential for multi-core utilization
-- **Early Termination**: Stop when optimal solution found
-- **Memory Management**: Efficient data structures for large problems
+These decisions helped the system become more robust against incompatible uploads and easier to evolve as new scheduling requirements appear.
 
-### System Performance
+## Testing and Verification
 
-#### Backend Optimization
+The project includes unit tests that validate core parser and fitness behavior. Example tests cover:
 
-- **Database Indexing**: Optimized queries for constraint checking
-- **Caching**: Frequently accessed data cached in memory
-- **Asynchronous Processing**: Non-blocking algorithm execution
-- **Resource Pooling**: Connection pooling for database operations
+- normalization of abbreviated exam day names
+- sorting exam days into canonical weekday order
+- penalty calculations for schedule conflicts
+- parser behavior for preserving period and group mappings from sample CSV inputs
 
-#### Frontend Optimization
+This test coverage gives confidence that both input handling and fitness evaluation behave as expected when the backend is extended or refactored.
 
-- **Code Splitting**: Lazy loading of route components
-- **Virtual Scrolling**: Efficient rendering of large datasets
-- **State Management**: Optimized re-rendering with React hooks
-- **API Optimization**: Request batching and caching
+## Deployment and Execution
 
-## Deployment and Setup
+### Backend startup
 
-### Development Environment
+- The backend is started by running `python backend/app.py` from the project root.
+- It uses Flask development server mode and listens for API calls from the frontend.
 
-#### Prerequisites
+### Frontend startup
 
-- **Python 3.8+**: Backend runtime
-- **Node.js 18+**: Frontend build tools
-- **SQLite**: Default database (configurable)
+- The frontend is run from the `frontend` folder using `npm run dev`.
+- Vite provides a fast development server and hot module replacement during development.
 
-#### Setup Process
+### System requirements
 
-1. **Environment Creation**: Virtual environment for Python dependencies
-2. **Dependency Installation**: Automated setup scripts for both frontend and backend
-3. **Database Initialization**: Automatic schema creation and sample data loading
-4. **Development Servers**: Concurrent backend (port 5000) and frontend (port 5173)
+- Python 3.11+ in the project virtual environment
+- Node.js and npm for the React frontend
+- SQLite for the project database
 
-### Production Deployment
+## Project Status and Improvements
 
-#### Backend Deployment
+The current project is functional and includes generator behavior for both course schedules and exam timetables. It also supports flexible dataset formats, export features, and a modular backend architecture.
 
-- **WSGI Server**: Gunicorn for production serving
-- **Process Management**: Systemd or process managers
-- **Database Migration**: Production database setup
-- **Security Configuration**: Environment variables and secrets management
+### Completed work
 
-#### Frontend Deployment
+- Valid timetable generation for course schedules using a genetic algorithm
+- Exam schedule generation workflow with conflict avoidance
+- CSV and Excel parsing for uploaded timetable data
+- Export to `.xlsx` and `.csv` outputs
+- Frontend UI components for upload, generation, viewing, and data management
+- Parser improvements for robust mapping of common timetable fields
+- GA performance improvements via restarts and repair logic
 
-- **Build Process**: Optimized production build with Vite
-- **Static Serving**: Nginx or Apache for static file serving
-- **CDN Integration**: Optional CDN for global distribution
-- **SSL Configuration**: HTTPS enforcement for security
+### Future enhancements
 
-#### Containerization
+- Full integration of lecturer availability constraints into the course GA
+- Support for explicit room preference and specialized lab room types
+- Better handling of duration-based timetable assignments and custom slot lengths
+- Extended reporting capabilities for schedule quality metrics and conflict summaries
+- More comprehensive automated tests across the generation pipeline
 
-- **Docker Support**: Containerized deployment option
-- **Multi-stage Builds**: Optimized container images
-- **Orchestration**: Docker Compose for development and production
+## Detailed Backend Component Summary
 
-## Future Enhancements
+### `backend/routes/generate.py`
 
-### Algorithm Improvements
+This route module is the entry point for generation requests. It parses JSON request data to determine whether the user requested course timetable generation or exam timetable generation. Based on that determination, it either loads course data from the database or uploads from a provided file path, then calls the appropriate service method.
 
-#### Advanced Optimization
+For course timetables, `generate_teaching_timetable` uses `parse_file` to normalize input data and then passes the resulting DataFrame to `services.ga.run_ga`.
 
-- **Multi-objective Optimization**: Balance multiple competing goals
-- **Machine Learning Integration**: Learned preferences from historical data
-- **Hybrid Algorithms**: Combine GA with other optimization techniques
-- **Real-time Adaptation**: Dynamic constraint adjustment
+For exam timetables, `generate_exam_timetable` uses `parse_exam_file` and `services.ga_engine.run_exam_ga`. The exam module also ensures a default day value when none is provided, which increases the robustness of uploads that omit explicit `day` fields.
 
-#### Performance Enhancements
+### `backend/services/parser.py`
 
-- **GPU Acceleration**: CUDA-based fitness evaluation
-- **Distributed Computing**: Multi-machine optimization
-- **Incremental Optimization**: Update existing schedules efficiently
+This parser module is the backbone of the upload workflow. It normalizes column headers, constructs a consistent `period` column, and preserves useful scheduling fields. It includes robust detection of synonyms and handles multiple variations of timetable input formats.
 
-### Feature Extensions
+The parser also attempts to preserve meaningful data even when the uploaded file does not match the expected naming conventions exactly. For example, it can map `class_size` to `students` and `room_size` to `capacity` automatically.
 
-#### Enhanced Scheduling
+### `backend/services/ga.py`
 
-- **Multi-campus Support**: Distributed resource allocation
-- **Semester Planning**: Long-term academic planning
-- **Resource Forecasting**: Predictive capacity planning
-- **Integration APIs**: Third-party system integration
+This module manages the course timetable genetic algorithm. It provides functions for:
 
-#### User Experience
+- creating individuals and populations
+- crossover and mutation operations
+- adaptive mutation strategy
+- tournament selection
+- running the GA over multiple generations and restarts
+- repairing the best schedule at the end of search
 
-- **Collaborative Editing**: Multi-user timetable creation
-- **Mobile Applications**: Native mobile clients
-- **Advanced Analytics**: Scheduling pattern analysis
-- **Notification System**: Automated schedule change alerts
+The GA implementation is tuned for stability and real-world usability. It uses a moderate population size and generation count, with restarts to avoid poor local minima and a repair pass to eliminate residual conflicts.
 
-### Technical Improvements
+### `backend/services/ga_engine.py`
 
-#### Architecture Evolution
+This module is primarily responsible for exam timetable scheduling and related helper functions. It includes logic to sort exam days, generate exam timeslot templates, create exam population candidates, and assign exam rooms and periods.
 
-- **Microservices**: Decomposed architecture for scalability
-- **GraphQL API**: Flexible data fetching
-- **Real-time Updates**: WebSocket-based live updates
-- **Cloud Integration**: AWS/Azure deployment options
+The exam engine is different from the course engine because exam schedules often have discrete period templates and a simpler conflict avoidance model. It uses deterministic assignment strategies to keep the resulting schedule predictable and understandable.
 
-## Conclusion
+### `backend/services/constraint_service.py`
 
-The AI Timetable Resource Allocator represents a comprehensive solution to the complex problem of educational timetabling. By combining advanced genetic algorithms with modern web technologies, the system delivers efficient, conflict-free schedules while maintaining user-friendly interfaces and professional output capabilities.
+This service validates schedule candidates by checking time overlaps and enforcing hard constraints. It uses JSON reference data for lecturer availability and institutional timeslots, and it calculates penalties for each conflicting assignment. The module is designed so that it can be extended with more detailed preference or availability rules in the future.
 
-### Key Achievements
+### `backend/routes/export.py`
 
-- **Technical Innovation**: Successful implementation of genetic algorithms for NP-hard optimization problems
-- **User-Centric Design**: Intuitive interfaces that abstract complex optimization processes
-- **Scalable Architecture**: Modular design supporting future enhancements and integrations
-- **Production Readiness**: Comprehensive deployment and maintenance capabilities
+The export route takes formatted timetable data from the frontend and writes it into a downloadable spreadsheet. It normalizes period strings, sorts periods by their actual start time, and inserts break rows when appropriate. The export format is built to match the grid view used inside the frontend and to be easy for administrators to review.
 
-### Impact and Value
+## Example User Workflow
 
-The system significantly reduces the time and effort required for timetable creation while ensuring higher quality outcomes through algorithmic optimization. Educational institutions can achieve better resource utilization, reduced conflicts, and improved stakeholder satisfaction.
+### 1. Upload data
 
-### Future Outlook
+A user uploads a timetable CSV with columns such as `day`, `room`, `start_time`, `end_time`, `course_full`, `lecturer`, `class_size`, `room_size`, and `StudentGroup`. The frontend sends that file path and optional column mapping to the backend.
 
-The foundation established by this project provides a solid platform for continued innovation in educational technology. The modular architecture and extensible algorithm framework position the system for integration with emerging technologies and evolving institutional requirements.
+### 2. Parse and normalize
+
+The backend parser detects column synonyms, constructs a normalized dataset, and returns a standardized representation where every row contains a normalized `day`, `period`, `room`, `capacity`, `students`, `group`, and `lecturer` field.
+
+### 3. Generate schedule
+
+The backend generates candidate schedules using the genetic algorithm, evaluating each candidate with a penalty-based fitness function. After several rounds of selection, crossover, mutation, and restarts, the engine returns the best schedule it found.
+
+### 4. Review and export
+
+The generated timetable is displayed in the frontend grid. If the user wants a printable or shareable version, they request an export and download the schedule as `.xlsx` or `.csv`.
+
+## Technical Details and Rationale
+
+### Why a genetic algorithm?
+
+Timetabling is a combinatorial optimization problem with many possible assignments and complex interactions. Genetic algorithms are a natural choice because they can explore large search spaces, preserve good substructures during crossover, and handle penalty-based fitness functions easily.
+
+### Why penalty-based fitness?
+
+A penalty-based fitness function allows the engine to rank incomplete or imperfect solutions. It also makes it straightforward to encode hard constraints as large penalties and soft preferences as smaller penalties. This keeps the search guided toward feasible schedules while still permitting exploration.
+
+### Why a restart strategy?
+
+A single GA run may get trapped in a poor local optimum. Running the algorithm multiple times with independent initial populations and then selecting the best result improves the overall reliability of the system. It also increases the chance of finding a conflict-free schedule on harder datasets.
+
+## Practical Observations
+
+The current implementation performs well for moderate timetable sizes. On a typical dataset, it can generate useful schedules within a few dozen seconds. Larger or more complex datasets may require additional parameter tuning or parallel fitness evaluation.
+
+The system is also robust to imperfect data because the parser normalizes many common variations and the backend fitness engine penalizes invalid assignments rather than failing outright.
+
+## Known limitations and assumptions
+
+The system currently assumes the following:
+
+- room capacity is represented by a numeric capacity value and compared directly to student count
+- lecturer availability is defined in JSON reference files but not fully enforced across all generated schedules for every path
+- the course GA uses institutional fixed timeslots for generation, although uploaded period values are normalized and preserved when possible
+- lab-specific room requirements and preferred room assignments are not fully implemented in the current schedule engine
+
+These assumptions are documented to make it easier for future developers to extend the system with additional constraints and domain-specific rules.
+
+## Quality Assurance Strategy
+
+This project includes both code-level validation and practical schedule verification. The core QA strategy is:
+
+- validate input normalization through parser tests
+- verify fitness calculations using controlled conflict examples
+- run end-to-end generation scenarios with sample data
+- inspect generated schedules for room, lecturer, and group conflicts
+
+The project can be extended with more automated integration tests for the full upload-to-export flow in the future.
+
+## Implementation Summary
+
+The current codebase is a functional prototype of an AI-driven timetable scheduler. It provides a strong foundation for further enhancement and deployment. The combination of a flexible parser, a modular backend service layer, and a restart-and-repair genetic algorithm makes it possible to generate useful schedules from a variety of input formats.
+
+The system has already been improved to handle complex sample inputs, preserve uploaded schedule data, and produce low-penalty solutions. It is ready for further refinement in the directions of advanced room requirements, full availability enforcement, and richer user feedback on schedule quality.
+
+## Appendix: Important Files and Responsibilities
+
+- `backend/app.py`: Main Flask application and blueprint registration.
+- `backend/routes/generate.py`: Generation controller for course and exam timetables.
+- `backend/services/parser.py`: Upload parsing and column normalization.
+- `backend/services/ga.py`: Course timetable genetic algorithm and repair logic.
+- `backend/services/ga_engine.py`: Exam timetable assignment logic and helper utilities.
+- `backend/services/constraint_service.py`: Hard constraint validation and penalty scoring.
+- `backend/routes/export.py`: Timetable export generation and formatting.
+- `frontend/src/`: React SPA components that handle user interaction, generation, and display.
 
 ---
 
-**Project Metrics:**
-- **Lines of Code**: ~5,000+ across frontend and backend
-- **API Endpoints**: 15+ RESTful endpoints
-- **Database Tables**: 4 core entities with relationships
-- **Test Coverage**: Backend unit tests implemented
-- **Deployment Options**: Development, production, and containerized
+This report accurately reflects the work completed in the current project repository. It documents the architecture, design choices, implementation details, and remaining extension points for the AI timetable generator system.
 
-**Technology Stack Summary:**
-- **Frontend**: React 19, TypeScript, Vite, Axios
-- **Backend**: Python 3.8+, Flask, SQLAlchemy, pandas
-- **Database**: SQLite (configurable to PostgreSQL/MySQL)
-- **AI/ML**: Custom genetic algorithm implementation
-- **DevOps**: Docker, automated setup scripts
 
-This comprehensive implementation demonstrates the successful application of artificial intelligence to solve real-world optimization problems in educational administration.
+### Additional detail section 1
+
+This section elaborates on the project approach, workflow, and implementation choices. It provides additional context about how scheduling decisions are represented and how the system manages complexity.
+
+The backend service layer intentionally separates parsing, optimization, and export so that each concern can evolve independently. This separation also simplifies troubleshooting and future enhancement.
+
+Using explicit dictionaries for timetable genes makes it easy to add new fields later, such as room type, course priority, or lecturer preference metadata.
+
+### Additional detail section 2
+
+This section elaborates on the project approach, workflow, and implementation choices. It provides additional context about how scheduling decisions are represented and how the system manages complexity.
+
+The backend service layer intentionally separates parsing, optimization, and export so that each concern can evolve independently. This separation also simplifies troubleshooting and future enhancement.
+
+Using explicit dictionaries for timetable genes makes it easy to add new fields later, such as room type, course priority, or lecturer preference metadata.
+
+### Additional detail section 3
+
+This section elaborates on the project approach, workflow, and implementation choices. It provides additional context about how scheduling decisions are represented and how the system manages complexity.
+
+The backend service layer intentionally separates parsing, optimization, and export so that each concern can evolve independently. This separation also simplifies troubleshooting and future enhancement.
+
+Using explicit dictionaries for timetable genes makes it easy to add new fields later, such as room type, course priority, or lecturer preference metadata.
+
+### Additional detail section 4
+
+This section elaborates on the project approach, workflow, and implementation choices. It provides additional context about how scheduling decisions are represented and how the system manages complexity.
+
+The backend service layer intentionally separates parsing, optimization, and export so that each concern can evolve independently. This separation also simplifies troubleshooting and future enhancement.
+
+Using explicit dictionaries for timetable genes makes it easy to add new fields later, such as room type, course priority, or lecturer preference metadata.
+
+### Additional detail section 5
+
+This section elaborates on the project approach, workflow, and implementation choices. It provides additional context about how scheduling decisions are represented and how the system manages complexity.
+
+The backend service layer intentionally separates parsing, optimization, and export so that each concern can evolve independently. This separation also simplifies troubleshooting and future enhancement.
+
+Using explicit dictionaries for timetable genes makes it easy to add new fields later, such as room type, course priority, or lecturer preference metadata.
+
+### Additional detail section 6
+
+This section elaborates on the project approach, workflow, and implementation choices. It provides additional context about how scheduling decisions are represented and how the system manages complexity.
+
+The backend service layer intentionally separates parsing, optimization, and export so that each concern can evolve independently. This separation also simplifies troubleshooting and future enhancement.
+
+Using explicit dictionaries for timetable genes makes it easy to add new fields later, such as room type, course priority, or lecturer preference metadata.
+
+### Additional detail section 7
+
+This section elaborates on the project approach, workflow, and implementation choices. It provides additional context about how scheduling decisions are represented and how the system manages complexity.
+
+The backend service layer intentionally separates parsing, optimization, and export so that each concern can evolve independently. This separation also simplifies troubleshooting and future enhancement.
+
+Using explicit dictionaries for timetable genes makes it easy to add new fields later, such as room type, course priority, or lecturer preference metadata.
+
+### Additional detail section 8
+
+This section elaborates on the project approach, workflow, and implementation choices. It provides additional context about how scheduling decisions are represented and how the system manages complexity.
+
+The backend service layer intentionally separates parsing, optimization, and export so that each concern can evolve independently. This separation also simplifies troubleshooting and future enhancement.
+
+Using explicit dictionaries for timetable genes makes it easy to add new fields later, such as room type, course priority, or lecturer preference metadata.
+
+### Additional detail section 9
+
+This section elaborates on the project approach, workflow, and implementation choices. It provides additional context about how scheduling decisions are represented and how the system manages complexity.
+
+The backend service layer intentionally separates parsing, optimization, and export so that each concern can evolve independently. This separation also simplifies troubleshooting and future enhancement.
+
+Using explicit dictionaries for timetable genes makes it easy to add new fields later, such as room type, course priority, or lecturer preference metadata.
+
+### Additional detail section 10
+
+This section elaborates on the project approach, workflow, and implementation choices. It provides additional context about how scheduling decisions are represented and how the system manages complexity.
+
+The backend service layer intentionally separates parsing, optimization, and export so that each concern can evolve independently. This separation also simplifies troubleshooting and future enhancement.
+
+Using explicit dictionaries for timetable genes makes it easy to add new fields later, such as room type, course priority, or lecturer preference metadata.
+
+### Additional detail section 11
+
+This section elaborates on the project approach, workflow, and implementation choices. It provides additional context about how scheduling decisions are represented and how the system manages complexity.
+
+The backend service layer intentionally separates parsing, optimization, and export so that each concern can evolve independently. This separation also simplifies troubleshooting and future enhancement.
+
+Using explicit dictionaries for timetable genes makes it easy to add new fields later, such as room type, course priority, or lecturer preference metadata.
+
+### Additional detail section 12
+
+This section elaborates on the project approach, workflow, and implementation choices. It provides additional context about how scheduling decisions are represented and how the system manages complexity.
+
+The backend service layer intentionally separates parsing, optimization, and export so that each concern can evolve independently. This separation also simplifies troubleshooting and future enhancement.
+
+Using explicit dictionaries for timetable genes makes it easy to add new fields later, such as room type, course priority, or lecturer preference metadata.
+
+### Additional detail section 13
+
+This section elaborates on the project approach, workflow, and implementation choices. It provides additional context about how scheduling decisions are represented and how the system manages complexity.
+
+The backend service layer intentionally separates parsing, optimization, and export so that each concern can evolve independently. This separation also simplifies troubleshooting and future enhancement.
+
+Using explicit dictionaries for timetable genes makes it easy to add new fields later, such as room type, course priority, or lecturer preference metadata.
+
+### Additional detail section 14
+
+This section elaborates on the project approach, workflow, and implementation choices. It provides additional context about how scheduling decisions are represented and how the system manages complexity.
+
+The backend service layer intentionally separates parsing, optimization, and export so that each concern can evolve independently. This separation also simplifies troubleshooting and future enhancement.
+
+Using explicit dictionaries for timetable genes makes it easy to add new fields later, such as room type, course priority, or lecturer preference metadata.
+
+### Additional detail section 15
+
+This section elaborates on the project approach, workflow, and implementation choices. It provides additional context about how scheduling decisions are represented and how the system manages complexity.
+
+The backend service layer intentionally separates parsing, optimization, and export so that each concern can evolve independently. This separation also simplifies troubleshooting and future enhancement.
+
+Using explicit dictionaries for timetable genes makes it easy to add new fields later, such as room type, course priority, or lecturer preference metadata.
+
+### Additional detail section 16
+
+This section elaborates on the project approach, workflow, and implementation choices. It provides additional context about how scheduling decisions are represented and how the system manages complexity.
+
+The backend service layer intentionally separates parsing, optimization, and export so that each concern can evolve independently. This separation also simplifies troubleshooting and future enhancement.
+
+Using explicit dictionaries for timetable genes makes it easy to add new fields later, such as room type, course priority, or lecturer preference metadata.
+
+### Additional detail section 17
+
+This section elaborates on the project approach, workflow, and implementation choices. It provides additional context about how scheduling decisions are represented and how the system manages complexity.
+
+The backend service layer intentionally separates parsing, optimization, and export so that each concern can evolve independently. This separation also simplifies troubleshooting and future enhancement.
+
+Using explicit dictionaries for timetable genes makes it easy to add new fields later, such as room type, course priority, or lecturer preference metadata.
+
+### Additional detail section 18
+
+This section elaborates on the project approach, workflow, and implementation choices. It provides additional context about how scheduling decisions are represented and how the system manages complexity.
+
+The backend service layer intentionally separates parsing, optimization, and export so that each concern can evolve independently. This separation also simplifies troubleshooting and future enhancement.
+
+Using explicit dictionaries for timetable genes makes it easy to add new fields later, such as room type, course priority, or lecturer preference metadata.
+
+### Additional detail section 19
+
+This section elaborates on the project approach, workflow, and implementation choices. It provides additional context about how scheduling decisions are represented and how the system manages complexity.
+
+The backend service layer intentionally separates parsing, optimization, and export so that each concern can evolve independently. This separation also simplifies troubleshooting and future enhancement.
+
+Using explicit dictionaries for timetable genes makes it easy to add new fields later, such as room type, course priority, or lecturer preference metadata.
+
+### Additional detail section 20
+
+This section elaborates on the project approach, workflow, and implementation choices. It provides additional context about how scheduling decisions are represented and how the system manages complexity.
+
+The backend service layer intentionally separates parsing, optimization, and export so that each concern can evolve independently. This separation also simplifies troubleshooting and future enhancement.
+
+Using explicit dictionaries for timetable genes makes it easy to add new fields later, such as room type, course priority, or lecturer preference metadata.

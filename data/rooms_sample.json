@@ -32,20 +32,36 @@
     "capacity": 40
   },
   {
+    "id": "Lab9",
+    "capacity": 30
+  },
+  {
+    "id": "Lab10",
+    "capacity": 30
+  },
+  {
     "id": "Hall1",
-    "capacity": 50
+    "capacity": 60
   },
   {
     "id": "Hall2",
-    "capacity": 50
+    "capacity": 60
   },
   {
     "id": "Hall3",
-    "capacity": 50
+    "capacity": 60
   },
   {
     "id": "Hall4",
-    "capacity": 50
+    "capacity": 60
+  },
+  {
+    "id": "Hall5",
+    "capacity": 60
+  },
+  {
+    "id": "Hall6",
+    "capacity": 60
   },
   {
     "id": "Room101",
@@ -62,5 +78,29 @@
   {
     "id": "Room104",
     "capacity": 40
+  },
+  {
+    "id": "Room105",
+    "capacity": 45
+  },
+  {
+    "id": "Room106",
+    "capacity": 45
+  },
+  {
+    "id": "Room107",
+    "capacity": 45
+  },
+  {
+    "id": "Room108",
+    "capacity": 45
+  },
+  {
+    "id": "Studio1",
+    "capacity": 35
+  },
+  {
+    "id": "Studio2",
+    "capacity": 35
   }
 ]

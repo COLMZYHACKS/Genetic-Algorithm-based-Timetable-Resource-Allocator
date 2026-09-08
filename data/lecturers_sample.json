@@ -38,5 +38,35 @@
     "id": 8,
     "name": "Dr. Moore",
     "unavailable_slots": []
+  },
+  {
+    "id": 9,
+    "name": "Dr. Patel",
+    "unavailable_slots": []
+  },
+  {
+    "id": 10,
+    "name": "Prof. Garcia",
+    "unavailable_slots": []
+  },
+  {
+    "id": 11,
+    "name": "Dr. Chen",
+    "unavailable_slots": []
+  },
+  {
+    "id": 12,
+    "name": "Mr. Wilson",
+    "unavailable_slots": []
+  },
+  {
+    "id": 13,
+    "name": "Ms. Lee",
+    "unavailable_slots": []
+  },
+  {
+    "id": 14,
+    "name": "Dr. Martinez",
+    "unavailable_slots": []
   }
 ]

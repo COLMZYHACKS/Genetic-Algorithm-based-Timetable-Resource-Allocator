@@ -11,6 +11,7 @@ export default function Dashboard() {
   const [progress, setProgress] = useState(0);
   const [useDatabase, setUseDatabase] = useState(false);
   const [timetableType, setTimetableType] = useState<"course" | "exam">("course");
+  const [fitnessScore, setFitnessScore] = useState<number | null>(null);
 
   const generate = async () => {
     if (!useDatabase && (!path || path.trim() === "")) {
@@ -56,6 +57,7 @@ export default function Dashboard() {
 
       if (responseData.timetable) {
         setData(responseData.timetable);
+        setFitnessScore(responseData.fitness ?? responseData.score ?? null);
         setProgress(100);
       } else {
         alert("Generation failed: No timetable data received");
@@ -74,94 +76,141 @@ export default function Dashboard() {
 
   return (
     <div className="dashboard">
-      <div className="dashboard-header">
-        <h1 className="dashboard-title">AI TIMETABLE RESOURCE ALLOCATOR</h1>
-        <p className="dashboard-subtitle">Upload your course data or use database data to generate optimized timetables</p>
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Dashboard</h1>
+          <p className="page-subtitle">Generate optimized course and examination timetables using your university scheduling data.</p>
+        </div>
+        <div className="page-meta">
+          <p className="last-updated">Last updated: Today</p>
+        </div>
       </div>
 
       <div className="dashboard-content">
         <div className="upload-section">
           <div className="section-header">
-            <h2>Upload Data</h2>
-            <p>Upload your CSV file containing course, lecturer, and student information</p>
-            <div className="mt-2">
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={useDatabase}
-                  onChange={(e) => setUseDatabase(e.target.checked)}
-                  className="mr-2"
-                />
-                Use database data instead of uploaded file
-              </label>
+            <h2>Data Source</h2>
+            <p>Choose how you would like to provide your university scheduling data.</p>
+          </div>
+
+          <div className="data-source-row">
+            <div
+              className={`data-source-card select-indicator ${useDatabase ? 'selected' : ''}`}
+              onClick={() => setUseDatabase(true)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setUseDatabase(true); }}
+              role="button"
+              tabIndex={0}
+              aria-pressed={useDatabase}
+            >
+              <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                <div className="icon-circle" aria-hidden>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                    <rect x="3" y="4" width="18" height="6" rx="1" fill="none" stroke="currentColor" strokeWidth="1.4" />
+                    <rect x="3" y="12" width="18" height="8" rx="1" fill="none" stroke="currentColor" strokeWidth="1.4" />
+                  </svg>
+                </div>
+                <div>
+                  <div className="data-source-title">Use Database</div>
+                  <div className="data-source-desc">Load existing university scheduling data from the system.</div>
+                </div>
+              </div>
+            </div>
+
+            <div
+              className={`data-source-card select-indicator ${!useDatabase ? 'selected' : ''}`}
+              onClick={() => setUseDatabase(false)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setUseDatabase(false); }}
+              role="button"
+              tabIndex={0}
+              aria-pressed={!useDatabase}
+            >
+              <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                <div className="icon-circle" aria-hidden>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 3v9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                    <rect x="3" y="14" width="18" height="6" rx="1" fill="none" stroke="currentColor" strokeWidth="1.4" />
+                  </svg>
+                </div>
+                <div>
+                  <div className="data-source-title">Upload CSV</div>
+                  <div className="data-source-desc">Upload course, lecturer and student data using a CSV file.</div>
+                </div>
+              </div>
+              <div className="upload-area">
+                {!useDatabase && (
+                  <Upload setPath={setPath} />
+                )}
+              </div>
             </div>
           </div>
-          {!useDatabase && (
-            <div className="upload-card">
-              <Upload setPath={setPath} />
-            </div>
-          )}
         </div>
 
         <div className="generate-section">
           <div className="section-header">
-            <h2>Generate Timetable</h2>
-            <p>Select timetable type and click the button below to generate an optimized timetable using AI</p>
+            <h2>Timetable Type</h2>
+            <p>Select the type of timetable you want to generate.</p>
           </div>
           <div className="generate-card">
-            <div className="timetable-type-selector">
-              <label className="type-label">
-                <input
-                  type="radio"
-                  value="course"
-                  checked={timetableType === "course"}
-                  onChange={(e) => setTimetableType(e.target.value as "course" | "exam")}
-                />
-                Course Timetable
+            <div className="timetable-type-cards">
+              <label className={`option-card ${timetableType === 'course' ? 'selected' : ''}`}>
+                <input type="radio" name="ttype" value="course" checked={timetableType === 'course'} onChange={(e) => setTimetableType(e.target.value as "course" | "exam")} />
+                <div className="option-content">
+                  <div className="option-title">Course Timetable</div>
+                  <div className="option-desc">Regular academic schedule</div>
+                </div>
               </label>
-              <label className="type-label">
-                <input
-                  type="radio"
-                  value="exam"
-                  checked={timetableType === "exam"}
-                  onChange={(e) => setTimetableType(e.target.value as "course" | "exam")}
-                />
-                Exam Timetable
+
+              <label className={`option-card ${timetableType === 'exam' ? 'selected' : ''}`}>
+                <input type="radio" name="ttype" value="exam" checked={timetableType === 'exam'} onChange={(e) => setTimetableType(e.target.value as "course" | "exam")} />
+                <div className="option-content">
+                  <div className="option-title">Exam Timetable</div>
+                  <div className="option-desc">Examination scheduling</div>
+                </div>
               </label>
             </div>
-            <button
-              onClick={generate}
-              disabled={loading || (!useDatabase && !path)}
-              className={`generate-btn ${loading ? 'loading' : ''}`}
-            >
-              {loading ? (
-                <>
-                  <svg className="loading-spinner" viewBox="0 0 24 24">
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" strokeDasharray="31.416" strokeDashoffset="31.416">
-                      <animate attributeName="stroke-dashoffset" dur="1s" values="31.416;0" repeatCount="indefinite"/>
-                    </circle>
-                  </svg>
-                  Generating... ({progress}%)
-                </>
-              ) : (
-                <>
-                  <svg className="generate-icon" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.293l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.414V13a1 1 0 102 0V9.414l1.293 1.293a1 1 0 001.414-1.414z" clipRule="evenodd"/>
-                  </svg>
-                  Generate Timetable
-                </>
+
+            <div className="generate-actions">
+              <button
+                onClick={generate}
+                disabled={loading || (!useDatabase && !path)}
+                className={`generate-btn ${loading ? 'loading' : ''}`}
+                aria-live="polite"
+              >
+                {loading ? (
+                  <>
+                    <svg className="loading-spinner" viewBox="0 0 24 24">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" strokeDasharray="31.416" strokeDashoffset="31.416">
+                        <animate attributeName="stroke-dashoffset" dur="1s" values="31.416;0" repeatCount="indefinite"/>
+                      </circle>
+                    </svg>
+                    Generating... ({progress}%)
+                  </>
+                ) : (
+                  <>
+                    <span aria-hidden style={{ fontSize: 18, marginRight: 8 }}>✨</span>
+                    Generate Timetable
+                  </>
+                )}
+              </button>
+              {loading && (
+                <div className="progress-bar-container">
+                  <div className="progress-bar" style={{ width: `${progress}%` }}></div>
+                </div>
               )}
-            </button>
-            {loading && (
-              <div className="progress-bar-container">
-                <div className="progress-bar" style={{ width: `${progress}%` }}></div>
-              </div>
-            )}
+            </div>
             {(!useDatabase && !path) && (
-              <p className="generate-hint">Please upload a file first or switch to database mode</p>
+              <div className="generate-hint">⚠ Please upload a file or select Use Database before generating.</div>
             )}
           </div>
         </div>
+
+        {/* Empty state when no timetable generated */}
+        {(!loading && data.length === 0) && (
+          <div className="timetable-empty-state">
+            <strong>No timetable yet</strong>
+            <p>Upload or load your university data, select a timetable type, and click Generate to create an optimized schedule.</p>
+          </div>
+        )}
 
         {data.length > 0 && (
           <div className="results-section">
@@ -176,6 +225,11 @@ export default function Dashboard() {
                   <span className="stat">
                     <strong>{data.length}</strong> scheduled classes
                   </span>
+                  {fitnessScore !== null && (
+                    <span className="stat">
+                      <strong>{fitnessScore.toFixed(2)}%</strong> quality score
+                    </span>
+                  )}
                 </div>
               </div>
               <div className="timetable-container">

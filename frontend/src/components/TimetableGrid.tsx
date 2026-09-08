@@ -1,4 +1,5 @@
 const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+const dayOrder = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 interface TimetableItem {
   day: string;
@@ -34,6 +35,23 @@ function parsePeriod(period: string) {
   return { start, end };
 }
 
+function parseTimeValue(timeStr: string) {
+  const cleaned = timeStr.trim().replace(/\s+/g, "").replace(/:00$/, "");
+  const [hourStr, minuteStr] = cleaned.split(":");
+  const hour = parseInt(hourStr, 10);
+  const minute = minuteStr ? parseInt(minuteStr, 10) : 0;
+  if (Number.isNaN(hour) || Number.isNaN(minute)) return null;
+  return hour * 60 + minute;
+}
+
+function getExamRowRanges() {
+  return [
+    { label: "7:00-10:00", start: 7 * 60, end: 10 * 60 },
+    { label: "11:00-14:00", start: 11 * 60, end: 14 * 60 },
+    { label: "15:00-18:00", start: 15 * 60, end: 18 * 60 },
+  ];
+}
+
 function formatMinutes(minutes: number) {
   const hour = Math.floor(minutes / 60);
   const minute = minutes % 60;
@@ -47,6 +65,10 @@ function normalizePeriod(period: string) {
 }
 
 function getDisplayPeriods(data: TimetableItem[], isExamTimetable: boolean) {
+  if (isExamTimetable) {
+    return getExamRowRanges().map((range) => range.label);
+  }
+
   const uniquePeriods = Array.from(
     new Set(
       data
@@ -61,11 +83,6 @@ function getDisplayPeriods(data: TimetableItem[], isExamTimetable: boolean) {
     .filter((item) => item.parsed !== null)
     .sort((a, b) => (a.parsed!.start - b.parsed!.start))
     .map((item) => item.period);
-
-  // For exam timetables, don't add breaks
-  if (isExamTimetable) {
-    return sortedPeriods;
-  }
 
   // For course timetables, add breaks between gaps
   const displayPeriods: string[] = [];
@@ -83,6 +100,13 @@ function getDisplayPeriods(data: TimetableItem[], isExamTimetable: boolean) {
   return displayPeriods;
 }
 
+function isExamItemInRange(item: TimetableItem, range: { start: number; end: number }) {
+  const timeValue = item.period || item.time || "";
+  const minutes = parseTimeValue(String(timeValue));
+  if (minutes === null) return false;
+  return minutes >= range.start && minutes <= range.end;
+}
+
 export default function TimetableGrid({ data, timetableType = "course" }: Props) {
   if (!data || !Array.isArray(data) || data.length === 0) {
     return <div className="timetable-empty">No timetable data available</div>;
@@ -90,14 +114,44 @@ export default function TimetableGrid({ data, timetableType = "course" }: Props)
 
   const isExamTimetable = timetableType === "exam";
   const periods = getDisplayPeriods(data, isExamTimetable);
+  const daysToDisplay = isExamTimetable
+    ? Array.from(new Set(data.map((item) => item.day).filter(Boolean))).sort((a, b) => {
+        const aIndex = dayOrder.indexOf(a);
+        const bIndex = dayOrder.indexOf(b);
+        if (aIndex === -1 && bIndex === -1) {
+          return a.localeCompare(b);
+        }
+        if (aIndex === -1) {
+          return 1;
+        }
+        if (bIndex === -1) {
+          return -1;
+        }
+        return aIndex - bIndex;
+      })
+    : days;
 
   const getCell = (day: string, period: string) => {
+    if (isExamTimetable) {
+      const ranges = getExamRowRanges();
+      const targetRange = ranges.find((range) => range.label === period);
+      if (!targetRange) {
+        return [];
+      }
+      return data.filter(
+        (item) => item.day === day && isExamItemInRange(item, targetRange)
+      );
+    }
+
     return data.filter(
       (item) => item.day === day && normalizePeriod(item.period) === normalizePeriod(period)
     );
   };
 
   const isBreakRow = (period: string) => {
+    if (isExamTimetable) {
+      return false;
+    }
     return data.every((item) => normalizePeriod(item.period) !== normalizePeriod(period));
   };
 
@@ -106,7 +160,7 @@ export default function TimetableGrid({ data, timetableType = "course" }: Props)
       <thead>
         <tr>
           <th>Time</th>
-          {days.map((d) => (
+          {daysToDisplay.map((d) => (
             <th key={d}>{d}</th>
           ))}
         </tr>
@@ -119,7 +173,7 @@ export default function TimetableGrid({ data, timetableType = "course" }: Props)
             <tr key={p} className={breakRow ? "break-row" : undefined}>
               <td><b>{p}</b></td>
 
-              {days.map((d) => {
+              {daysToDisplay.map((d) => {
                 const classes = getCell(d, p);
 
                 return (

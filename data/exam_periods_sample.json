@@ -1,92 +1,92 @@
 [
   {
     "id": "EP1",
-    "day": "Monday",
-    "time": "9:00",
-    "duration": 120
+    "day": "01-06",
+    "time": "07:00",
+    "duration": 180
   },
   {
     "id": "EP2",
-    "day": "Monday",
-    "time": "11:30",
-    "duration": 120
+    "day": "01-06",
+    "time": "11:00",
+    "duration": 180
   },
   {
     "id": "EP3",
-    "day": "Monday",
-    "time": "14:00",
-    "duration": 120
+    "day": "01-06",
+    "time": "15:00",
+    "duration": 180
   },
   {
     "id": "EP4",
-    "day": "Tuesday",
-    "time": "9:00",
-    "duration": 120
+    "day": "01-07",
+    "time": "07:00",
+    "duration": 180
   },
   {
     "id": "EP5",
-    "day": "Tuesday",
-    "time": "11:30",
-    "duration": 120
+    "day": "01-07",
+    "time": "11:00",
+    "duration": 180
   },
   {
     "id": "EP6",
-    "day": "Tuesday",
-    "time": "14:00",
-    "duration": 120
+    "day": "01-07",
+    "time": "15:00",
+    "duration": 180
   },
   {
     "id": "EP7",
-    "day": "Wednesday",
-    "time": "9:00",
-    "duration": 120
+    "day": "01-08",
+    "time": "07:00",
+    "duration": 180
   },
   {
     "id": "EP8",
-    "day": "Wednesday",
-    "time": "11:30",
-    "duration": 120
+    "day": "01-08",
+    "time": "11:00",
+    "duration": 180
   },
   {
     "id": "EP9",
-    "day": "Wednesday",
-    "time": "14:00",
-    "duration": 120
+    "day": "01-08",
+    "time": "15:00",
+    "duration": 180
   },
   {
     "id": "EP10",
-    "day": "Thursday",
-    "time": "9:00",
-    "duration": 120
+    "day": "01-09",
+    "time": "07:00",
+    "duration": 180
   },
   {
     "id": "EP11",
-    "day": "Thursday",
-    "time": "11:30",
-    "duration": 120
+    "day": "01-09",
+    "time": "11:00",
+    "duration": 180
   },
   {
     "id": "EP12",
-    "day": "Thursday",
-    "time": "14:00",
-    "duration": 120
+    "day": "01-09",
+    "time": "15:00",
+    "duration": 180
   },
   {
     "id": "EP13",
-    "day": "Friday",
-    "time": "9:00",
-    "duration": 120
+    "day": "01-10",
+    "time": "07:00",
+    "duration": 180
   },
   {
     "id": "EP14",
-    "day": "Friday",
-    "time": "11:30",
-    "duration": 120
+    "day": "01-10",
+    "time": "11:00",
+    "duration": 180
   },
   {
     "id": "EP15",
-    "day": "Friday",
-    "time": "14:00",
-    "duration": 120
+    "day": "01-10",
+    "time": "15:00",
+    "duration": 180
   }
 ]

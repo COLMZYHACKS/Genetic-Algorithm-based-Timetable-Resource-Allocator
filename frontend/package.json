@@ -1,5 +1,6 @@
 {
   "name": "ai-timetable-resource-allocator",
+  "author": "Malcolm Nettey (D4RK-D43mon)",
   "private": true,
   "version": "0.0.0",
   "type": "module",
