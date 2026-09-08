@@ -1,4 +1,4 @@
-# AI TIMETABLE RESOURCE ALLOCATOR
+# Genetic Algorithm AI TIMETABLE RESOURCE ALLOCATOR
 
 **Author:** Malcolm Nettey (D4RK-D43mon)
 **Repository:** [COLMZYHACKS/Genetic-Algorithm-based-Timetable-Resource-Allocator](https://github.com/COLMZYHACKS/Genetic-Algorithm-based-Timetable-Resource-Allocator)
